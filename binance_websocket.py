@@ -1,5 +1,6 @@
 import json
 
+import rel
 import websocket
 
 
@@ -32,7 +33,9 @@ class BinanceWebSocket:
         self.socket = websocket.WebSocketApp(
             url, on_message=self.on_message, on_error=self.on_error
         )
-        self.socket.run_forever()
+        self.socket.run_forever(dispatcher=rel, reconnect=5)
+        rel.signal(2, rel.abort)
+        rel.dispatch()
 
     def on_message(self, ws, message):
         data = json.loads(message)

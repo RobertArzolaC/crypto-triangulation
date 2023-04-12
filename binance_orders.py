@@ -7,7 +7,7 @@ from binance.enums import ORDER_TYPE_MARKET, SIDE_BUY, SIDE_SELL
 from constants import BTCUSDT, ETHUSDT, ETHBTC, RIGHT_TRIANGLE_STRATEGY
 
 
-class TradingCommand(ABC):
+class TradingOrder(ABC):
 
     def __init__(self, pair, quantity):
         self.pair = pair
@@ -22,7 +22,7 @@ class TradingCommand(ABC):
         pass
 
 
-class BuyCommand(TradingCommand):
+class BuyOrder(TradingOrder):
 
     def execute(self):
         self.client.create_order(
@@ -34,7 +34,7 @@ class BuyCommand(TradingCommand):
         return f"Buy {self.quantity} {self.pair}"
 
 
-class SellCommand(TradingCommand):
+class SellOrder(TradingOrder):
 
     def execute(self):
         self.client.create_order(
@@ -60,33 +60,32 @@ class TradingClient:
         self.strategy = strategy
         self.commands = []
 
-    def add_command(self, command):
+    def add_order(self, command):
         self.commands.append(command)
 
-    def execute_commands(self):
+    def execute_orders(self):
         batch = TradingBatch(self.commands)
         batch.execute()
 
-    def load_commands(self):
-        base_eth = 1
+    def load_orders(self, base_quantity=1):
         last_prices = self.strategy.get_last_prices()
 
         if self.strategy.name == RIGHT_TRIANGLE_STRATEGY:
             btc_quantity = float(
-                (last_prices[ETHUSDT]['ask'] * base_eth) /
+                (last_prices[ETHUSDT]['ask'] * base_quantity) /
                 last_prices[BTCUSDT]['bid']
             )
             btc_quantity = round(btc_quantity, 5)
 
-            self.add_command(SellCommand(BTCUSDT, btc_quantity))
-            self.add_command(BuyCommand(ETHUSDT, base_eth))
-            self.add_command(SellCommand(ETHBTC, base_eth))
+            self.add_order(SellOrder(BTCUSDT, btc_quantity))
+            self.add_order(BuyOrder(ETHUSDT, base_quantity))
+            self.add_order(SellOrder(ETHBTC, base_quantity))
         else:
             btc_quantity = float(
-                last_prices[ETHBTC]['ask'] * base_eth
+                last_prices[ETHBTC]['ask'] * base_quantity
             )
             btc_quantity = round(btc_quantity, 5)
 
-            self.add_command(BuyCommand(ETHBTC, base_eth))
-            self.add_command(SellCommand(ETHUSDT, base_eth))
-            self.add_command(BuyCommand(BTCUSDT, btc_quantity))
+            self.add_order(BuyOrder(ETHBTC, base_quantity))
+            self.add_order(SellOrder(ETHUSDT, base_quantity))
+            self.add_order(BuyOrder(BTCUSDT, btc_quantity))
