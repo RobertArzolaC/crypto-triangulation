@@ -37,9 +37,6 @@ class BuyOrder(TradingOrder):
             type=ORDER_TYPE_MARKET, quantity=self.quantity
         )
 
-    def __repr__(self):
-        return f"Buy {self.quantity} {self.pair}"
-
 
 class SellOrder(TradingOrder):
 
@@ -50,29 +47,26 @@ class SellOrder(TradingOrder):
             type=ORDER_TYPE_MARKET, quantity=self.quantity
         )
 
-    def __repr__(self):
-        return f"Sell {self.quantity} {self.pair}"
-
 
 class TradingBatch:
-    def __init__(self, commands):
-        self.commands = commands
+    def __init__(self, order_batch):
+        self.order_batch = order_batch
 
     def execute(self):
-        for command in self.commands:
-            command.execute()
+        for order in self.order_batch:
+            order.execute()
 
 
 class TradingClient:
     def __init__(self, strategy):
         self.strategy = strategy
-        self.commands = []
+        self.orders = []
 
-    def add_order(self, command):
-        self.commands.append(command)
+    def add_order(self, order):
+        self.orders.append(order)
 
     def execute_orders(self):
-        batch = TradingBatch(self.commands)
+        batch = TradingBatch(self.orders)
         batch.execute()
         logger.info(f"Orders executed for {self.strategy.name} strategy")
 

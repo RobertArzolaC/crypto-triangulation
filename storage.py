@@ -15,3 +15,6 @@ class LastPriceStorage:
 
     def get_state(self):
         return self._last_prices
+
+    def clear(self):
+        self._last_prices = {}
