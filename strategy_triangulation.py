@@ -4,6 +4,10 @@ from constants import (
     BTCUSDT, ETHUSDT, ETHBTC, RIGHT_TRIANGLE_STRATEGY,
     LEFT_TRIANGLE_STRATEGY
 )
+from logger import CryptoLogger
+
+
+logger = CryptoLogger(__name__)
 
 
 class Strategy(ABC):
@@ -57,7 +61,10 @@ class RightTriangleStrategy(Strategy):
     def is_profitable(self):
         ethbtc_quantity = self._last_prices[ETHBTC]['quantity']
         profit = round(float((ethbtc_quantity - 1) * 100), 2)
-        return profit > self.min_profit
+        is_profitable = profit > self.min_profit
+        if is_profitable:
+            logger.info(f"Profit: {profit}% > {self.min_profit}%")
+        return is_profitable
 
 
 class LeftTriangleStrategy(Strategy):
@@ -91,4 +98,7 @@ class LeftTriangleStrategy(Strategy):
     def is_profitable(self):
         ethbtc_quantity = self._last_prices[BTCUSDT]['quantity']
         profit = round(float((ethbtc_quantity - 1) * 100), 2)
-        return profit > self.min_profit
+        is_profitable = profit > self.min_profit
+        if is_profitable:
+            logger.info(f"Profit: {profit}% > {self.min_profit}%")
+        return is_profitable

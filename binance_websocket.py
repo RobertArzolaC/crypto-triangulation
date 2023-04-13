@@ -2,12 +2,19 @@ import json
 
 import websocket
 
+from constants import BINANCE_WEBSOCKET_URL
+from logger import CryptoLogger
+
+
+logger = CryptoLogger(__name__)
+
 
 class BinanceWebSocket:
     def __init__(self, pairs):
         self.pairs = pairs
         self.socket = None
         self.observers = []
+        self.url = BINANCE_WEBSOCKET_URL
 
     def register_observer(self, observer):
         self.observers.append(observer)
@@ -19,19 +26,17 @@ class BinanceWebSocket:
         for observer in self.observers:
             observer.update(data)
 
-    def get_pairs_path(self):
-        params = []
-        for pair in self.pairs:
-            params.append(pair.lower() + "@bookTicker")
+    def _get_pairs_uri(self):
+        params = [f"{pair.lower()}@bookTicker" for pair in self.pairs]
         return "/".join(params)
 
     def start(self):
-        url = "wss://stream.binance.com:9443/ws/"
-        pairs_path = self.get_pairs_path()
-        url += pairs_path
+        pairs_uri = self._get_pairs_uri()
+        self.url += pairs_uri
         self.socket = websocket.WebSocketApp(
-            url, on_message=self.on_message, on_error=self.on_error
+            self.url, on_message=self.on_message, on_error=self.on_error
         )
+        logger.info("Starting handle for websocket ...")
         self.socket.run_forever(reconnect=15)
 
     def on_message(self, ws, message):
@@ -39,4 +44,4 @@ class BinanceWebSocket:
         self.notify_observers(data)
 
     def on_error(self, ws, error):
-        print("error: ", error)
+        logger.error(f"Error on websocket: {error}")

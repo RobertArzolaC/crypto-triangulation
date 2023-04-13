@@ -5,6 +5,10 @@ from binance.client import Client
 from binance.enums import ORDER_TYPE_MARKET, SIDE_BUY, SIDE_SELL
 
 from constants import BTCUSDT, ETHUSDT, ETHBTC, RIGHT_TRIANGLE_STRATEGY
+from logger import CryptoLogger
+
+
+logger = CryptoLogger(__name__)
 
 
 class TradingOrder(ABC):
@@ -25,7 +29,7 @@ class TradingOrder(ABC):
 class BuyOrder(TradingOrder):
 
     def execute(self):
-        print(f"Buying {self.quantity} {self.pair}")
+        logger.info(f"Buying {self.quantity} {self.pair}")
         self.client.create_order(
             symbol=self.pair, side=SIDE_BUY,
             type=ORDER_TYPE_MARKET, quantity=self.quantity
@@ -38,7 +42,7 @@ class BuyOrder(TradingOrder):
 class SellOrder(TradingOrder):
 
     def execute(self):
-        print(f"Selling {self.quantity} {self.pair}")
+        logger.info(f"Selling {self.quantity} {self.pair}")
         self.client.create_order(
             symbol=self.pair, side=SIDE_SELL,
             type=ORDER_TYPE_MARKET, quantity=self.quantity
@@ -68,6 +72,7 @@ class TradingClient:
     def execute_orders(self):
         batch = TradingBatch(self.commands)
         batch.execute()
+        logger.info(f"Orders executed for {self.strategy.name} strategy")
 
     def load_orders(self, base_quantity=0.009):
         last_prices = self.strategy.get_last_prices()
