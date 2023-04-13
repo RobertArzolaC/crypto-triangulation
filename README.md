@@ -53,8 +53,8 @@ El proyecto está codificado utilizando una estructura simple e intuitiva que se
    |-- storage.py                       # Storage for prices
    |-- strategy_triangulation.py        # Stratiegies for Triangulation
    |-- requirements.txt                 # Package dependencies
-   |-- .env.sample                      # Inject Configuration via Environment Variables
    |-- main.py                          # Start the app here
-   |
-   |-- ************************************************************************
+   |-- logger.py                        # Logger configuration
+   |-- .env.sample                      # Inject Configuration via Environment Variables
+   |-- *************************************************************************************
 ```
