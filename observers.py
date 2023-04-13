@@ -10,6 +10,10 @@ class PriceObserver:
         self.strategies = []
         self.last_price_storage = LastPriceStorage()
 
+    def clear(self):
+        self.strategies = []
+        self.last_price_storage.clear()
+
     def add_strategy(self, strategy):
         self.strategies.append(strategy)
 
@@ -19,6 +23,7 @@ class PriceObserver:
                 trading_client = TradingClient(strategy)
                 trading_client.load_orders()
                 trading_client.execute_orders()
+        self.clear()
 
     def update(self, data):
         pair = data["s"]
