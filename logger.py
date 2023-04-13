@@ -1,20 +1,26 @@
 import logging
 
+from constants import LOGGING_FORMAT
+
 
 class CryptoLogger:
 
-    def __init__(self, name, level=logging.INFO):
+    def __init__(self, name, level=logging.INFO, file_path=None):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(level)
 
         ch = logging.StreamHandler()
         ch.setLevel(level)
 
-        _format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        formatter = logging.Formatter(_format)
-
+        formatter = logging.Formatter(LOGGING_FORMAT)
         ch.setFormatter(formatter)
         self.logger.addHandler(ch)
+
+        if file_path is not None:
+            fh = logging.FileHandler(file_path)
+            fh.setLevel(level)
+            fh.setFormatter(formatter)
+            self.logger.addHandler(fh)
 
     def debug(self, message):
         self.logger.debug(message)

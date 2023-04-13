@@ -2,11 +2,11 @@ import json
 
 import websocket
 
-from constants import BINANCE_WEBSOCKET_URL
+from constants import BINANCE_WEBSOCKET_URL, LOG_FILE_PATH
 from logger import CryptoLogger
 
 
-logger = CryptoLogger(__name__)
+logger = CryptoLogger(__name__, file_path=LOG_FILE_PATH)
 
 
 class BinanceWebSocket:

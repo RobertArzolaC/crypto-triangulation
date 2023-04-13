@@ -44,7 +44,7 @@ $ python main.py
 El proyecto está codificado utilizando una estructura simple e intuitiva que se presenta a continuación:
 
 ```bash
-< PROJECT ROOT >
+< crypto-triangulation >
    |
    |-- binance_orders.py                # Binance Orders
    |-- binance_websocket.py             # Binance Websocket

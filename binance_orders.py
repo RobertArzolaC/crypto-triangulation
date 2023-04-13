@@ -4,11 +4,13 @@ import os
 from binance.client import Client
 from binance.enums import ORDER_TYPE_MARKET, SIDE_BUY, SIDE_SELL
 
-from constants import BTCUSDT, ETHUSDT, ETHBTC, RIGHT_TRIANGLE_STRATEGY
+from constants import (
+    BTCUSDT, ETHUSDT, ETHBTC, RIGHT_TRIANGLE_STRATEGY, LOG_FILE_PATH
+)
 from logger import CryptoLogger
 
 
-logger = CryptoLogger(__name__)
+logger = CryptoLogger(__name__, file_path=LOG_FILE_PATH)
 
 
 class TradingOrder(ABC):
