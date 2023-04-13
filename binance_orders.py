@@ -25,6 +25,7 @@ class TradingOrder(ABC):
 class BuyOrder(TradingOrder):
 
     def execute(self):
+        print(f"Buying {self.quantity} {self.pair}")
         self.client.create_order(
             symbol=self.pair, side=SIDE_BUY,
             type=ORDER_TYPE_MARKET, quantity=self.quantity
@@ -37,6 +38,7 @@ class BuyOrder(TradingOrder):
 class SellOrder(TradingOrder):
 
     def execute(self):
+        print(f"Selling {self.quantity} {self.pair}")
         self.client.create_order(
             symbol=self.pair, side=SIDE_SELL,
             type=ORDER_TYPE_MARKET, quantity=self.quantity
@@ -67,7 +69,7 @@ class TradingClient:
         batch = TradingBatch(self.commands)
         batch.execute()
 
-    def load_orders(self, base_quantity=1):
+    def load_orders(self, base_quantity=0.009):
         last_prices = self.strategy.get_last_prices()
 
         if self.strategy.name == RIGHT_TRIANGLE_STRATEGY:
