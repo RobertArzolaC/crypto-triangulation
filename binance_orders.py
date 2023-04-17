@@ -31,21 +31,21 @@ class TradingOrder(ABC):
 class BuyOrder(TradingOrder):
 
     def execute(self):
-        logger.info(f"Buying {self.quantity} {self.pair}")
         self.client.create_order(
             symbol=self.pair, side=SIDE_BUY,
             type=ORDER_TYPE_MARKET, quantity=self.quantity
         )
+        logger.info(f"Bought {self.quantity} {self.pair}")
 
 
 class SellOrder(TradingOrder):
 
     def execute(self):
-        logger.info(f"Selling {self.quantity} {self.pair}")
         self.client.create_order(
             symbol=self.pair, side=SIDE_SELL,
             type=ORDER_TYPE_MARKET, quantity=self.quantity
         )
+        logger.info(f"Sold {self.quantity} {self.pair}")
 
 
 class TradingBatch:
@@ -61,6 +61,10 @@ class TradingClient:
     def __init__(self, strategy):
         self.strategy = strategy
         self.orders = []
+
+    def start(self):
+        self.load_orders()
+        self.execute_orders()
 
     def add_order(self, order):
         self.orders.append(order)

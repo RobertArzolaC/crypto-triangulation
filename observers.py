@@ -1,5 +1,5 @@
-from constants import ETHBTC, PAIRS_CRIPTO
 from binance_orders import TradingClient
+from constants import ETHBTC, PAIRS_CRIPTO
 from storage import LastPriceStorage
 from strategy_triangulation import RightTriangleStrategy, LeftTriangleStrategy
 
@@ -19,10 +19,10 @@ class PriceObserver:
 
     def execute(self):
         for strategy in self.strategies:
-            if strategy.is_profitable():
+            if strategy.is_profitable:
+                strategy.show_profit()
                 trading_client = TradingClient(strategy)
-                trading_client.load_orders()
-                trading_client.execute_orders()
+                trading_client.start()
         self.clear()
 
     def update(self, data):

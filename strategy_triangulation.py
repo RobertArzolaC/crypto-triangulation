@@ -12,11 +12,14 @@ logger = CryptoLogger(__name__, file_path=LOG_FILE_PATH)
 
 class Strategy(ABC):
 
-    def __init__(self, pairs_data, fees=0.999, min_profit=0.05):
+    def __init__(self, pairs_data, name, fees=0.999, min_profit=0.1):
+        self.name = name
         self.fees = fees
+        self.profit = 0.0
         self._last_prices = {}
         self.min_profit = min_profit
         self.parsed_pairs_data(pairs_data)
+        self.is_profitable = self.is_profitable()
 
     @abstractmethod
     def parsed_pairs_data(self, pairs_data):
@@ -29,12 +32,15 @@ class Strategy(ABC):
     def get_last_prices(self):
         return self._last_prices
 
+    def show_profit(self):
+        base_message = f"Profit[{self.name}]"
+        logger.info(f"{base_message}: {self.profit}% > {self.min_profit}%")
+
 
 class RightTriangleStrategy(Strategy):
 
     def __init__(self, pairs_data):
-        super().__init__(pairs_data)
-        self.name = RIGHT_TRIANGLE_STRATEGY
+        super().__init__(pairs_data, RIGHT_TRIANGLE_STRATEGY)
 
     def parsed_pairs_data(self, pairs_data):
         btcusdt_bid = round(float(pairs_data[BTCUSDT]["b"]), 2)
@@ -60,18 +66,14 @@ class RightTriangleStrategy(Strategy):
 
     def is_profitable(self):
         ethbtc_quantity = self._last_prices[ETHBTC]['quantity']
-        profit = round(float((ethbtc_quantity - 1) * 100), 2)
-        is_profitable = profit > self.min_profit
-        if is_profitable:
-            logger.info(f"Profit: {profit}% > {self.min_profit}%")
-        return is_profitable
+        self.profit = round(float((ethbtc_quantity - 1) * 100), 2)
+        return self.profit > self.min_profit
 
 
 class LeftTriangleStrategy(Strategy):
 
     def __init__(self, pairs_data):
-        super().__init__(pairs_data)
-        self.name = LEFT_TRIANGLE_STRATEGY
+        super().__init__(pairs_data, LEFT_TRIANGLE_STRATEGY)
 
     def parsed_pairs_data(self, pairs_data):
         ethbtc_ask = round(float(pairs_data[ETHBTC].get('a')), 6)
@@ -97,8 +99,5 @@ class LeftTriangleStrategy(Strategy):
 
     def is_profitable(self):
         ethbtc_quantity = self._last_prices[BTCUSDT]['quantity']
-        profit = round(float((ethbtc_quantity - 1) * 100), 2)
-        is_profitable = profit > self.min_profit
-        if is_profitable:
-            logger.info(f"Profit: {profit}% > {self.min_profit}%")
-        return is_profitable
+        self.profit = round(float((ethbtc_quantity - 1) * 100), 2)
+        return self.profit > self.min_profit
