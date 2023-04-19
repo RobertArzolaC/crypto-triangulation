@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 import os
 
 from binance_client import BinanceClient
-from binance.enums import ORDER_TYPE_MARKET, SIDE_BUY, SIDE_SELL
 
 from constants import (
-    BTCUSDT, ETHUSDT, ETHBTC, RIGHT_TRIANGLE_STRATEGY, LOG_FILE_PATH
+    BTCUSDT, ETHUSDT, ETHBTC, RIGHT_TRIANGLE_STRATEGY, LOG_FILE_PATH,
+    ORDER_TYPE_MARKET, SIDE_BUY, SIDE_SELL
 )
 from logger import CryptoLogger
 

@@ -46,6 +46,7 @@ El proyecto está codificado utilizando una estructura simple e intuitiva que se
 ```bash
 < crypto-triangulation >
    |
+   |-- binance_client.py                # Binance Client
    |-- binance_orders.py                # Binance Orders
    |-- binance_websocket.py             # Binance Websocket
    |-- constants.py                     # Constants
