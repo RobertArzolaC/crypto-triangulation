@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import os
 
-from binance.client import Client
+from binance_client import BinanceClient
 from binance.enums import ORDER_TYPE_MARKET, SIDE_BUY, SIDE_SELL
 
 from constants import (
@@ -18,7 +18,7 @@ class TradingOrder(ABC):
     def __init__(self, pair, quantity):
         self.pair = pair
         self.quantity = quantity
-        self.client = Client(
+        self.client = BinanceClient(
             api_key=os.getenv('BINANCE_API_KEY'),
             api_secret=os.getenv('BINANCE_API_SECRET'),
         )

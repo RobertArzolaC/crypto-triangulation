@@ -1,4 +1,3 @@
-import os
 import requests
 import hashlib
 import hmac
@@ -42,16 +41,4 @@ class BinanceClient:
             'type': type,
             'quantity': quantity
         }
-        response = self.send_request('POST', endpoint, params)
-        return response
-
-
-if __name__ == '__main__':
-    client = BinanceClient(
-        api_key=os.getenv('BINANCE_API_KEY'),
-        api_secret=os.getenv('BINANCE_API_SECRET'),
-    )
-    response = client.create_order(
-        symbol='BTCUSDT', side='BUY', type='MARKET', quantity=0.009
-    )
-    print(response)
+        return self.send_request('POST', endpoint, params)
