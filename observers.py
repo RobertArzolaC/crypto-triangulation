@@ -1,5 +1,5 @@
 from binance_orders import TradingClient
-from constants import ETHBTC, PAIRS_CRIPTO
+from constants import ETHBTC, NUMBER_OF_PAIRS
 from storage import LastPriceStorage
 from strategy_triangulation import RightTriangleStrategy, LeftTriangleStrategy
 
@@ -26,15 +26,13 @@ class PriceObserver:
         self.clear()
 
     def update(self, data):
-        pair = data["s"]
-        last_price_pair = self.last_price_storage.get_last_price(pair)
+        last_price_pair = self.last_price_storage.get_last_price(data["s"])
         if last_price_pair != data:
-            self.last_price_storage.update_last_price(pair, data)
-            existing_pairs = self.last_price_storage.get_state().keys()
-            if pair == ETHBTC and len(existing_pairs) == len(PAIRS_CRIPTO):
-                data = self.last_price_storage.get_state()
-                right_triangle_strategy = RightTriangleStrategy(data)
-                left_triangle_strategy = LeftTriangleStrategy(data)
+            price_info = self.last_price_storage.get_state()
+            self.last_price_storage.update_last_price(data["s"], data)
+            if data["s"] == ETHBTC and len(price_info) == NUMBER_OF_PAIRS:
+                right_triangle_strategy = RightTriangleStrategy(price_info)
+                left_triangle_strategy = LeftTriangleStrategy(price_info)
 
                 self.add_strategy(right_triangle_strategy)
                 self.add_strategy(left_triangle_strategy)
