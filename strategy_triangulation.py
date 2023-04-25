@@ -12,7 +12,7 @@ logger = CryptoLogger(__name__, file_path=LOG_FILE_PATH)
 
 class Strategy(ABC):
 
-    def __init__(self, pairs_data, name, fees=0.999, min_profit=0.1):
+    def __init__(self, pairs_data, name, fees=0.999, min_profit=0.05):
         self.name = name
         self.fees = fees
         self.profit = 0.0

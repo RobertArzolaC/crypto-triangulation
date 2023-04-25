@@ -74,7 +74,7 @@ class TradingClient:
         batch.execute()
         logger.info(f"Orders executed for {self.strategy.name} strategy")
 
-    def load_orders(self, base_quantity=0.009):
+    def load_orders(self, base_quantity=0.016):
         last_prices = self.strategy.get_last_prices()
 
         if self.strategy.name == RIGHT_TRIANGLE_STRATEGY:
