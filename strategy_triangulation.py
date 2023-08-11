@@ -12,7 +12,7 @@ logger = CryptoLogger(__name__, file_path=LOG_FILE_PATH)
 
 class Strategy(ABC):
 
-    def __init__(self, pairs_data, name, fees=0.999, min_profit=0.05):
+    def __init__(self, pairs_data, name, fees=0.99925, min_profit=0.1):
         self.name = name
         self.fees = fees
         self.profit = 0.0
@@ -43,22 +43,26 @@ class RightTriangleStrategy(Strategy):
         super().__init__(pairs_data, RIGHT_TRIANGLE_STRATEGY)
 
     def parsed_pairs_data(self, pairs_data):
-        btcusdt_bid = round(float(pairs_data[BTCUSDT]["b"]), 2)
-        btcusdt_volume = round(float(pairs_data[BTCUSDT].get('B')), 5)
+        btcusdt = pairs_data[BTCUSDT]
+        ethusdt = pairs_data[ETHUSDT]
+        ethbtc = pairs_data[ETHBTC]
+
+        btcusdt_bid = float(btcusdt["b"])
+        btcusdt_volume = float(btcusdt.get('B'))
         usdt_quantity = round(float(btcusdt_bid * self.fees), 8)
         self._last_prices[BTCUSDT] = dict(
             bid=btcusdt_bid, volume=btcusdt_volume, quantity=usdt_quantity
         )
 
-        ethusdt_ask = round(float(pairs_data[ETHUSDT].get('a')), 2)
-        ethusdt_volume = round(float(pairs_data[ETHUSDT].get('A')), 4)
+        ethusdt_ask = float(ethusdt.get('a'))
+        ethusdt_volume = float(ethusdt.get('A'))
         eth_quantity = round(float((usdt_quantity/ethusdt_ask) * self.fees), 8)
         self._last_prices[ETHUSDT] = dict(
             ask=ethusdt_ask, volume=ethusdt_volume, quantity=eth_quantity
         )
 
-        ethbtc_bid = round(float(pairs_data[ETHBTC].get('b')), 6)
-        ethbtc_volume = round(float(pairs_data[ETHBTC].get('B')), 4)
+        ethbtc_bid = float(ethbtc.get('b'))
+        ethbtc_volume = float(ethbtc.get('B'))
         btc_quantity = round(float(ethbtc_bid * eth_quantity * self.fees), 8)
         self._last_prices[ETHBTC] = dict(
             bid=ethbtc_bid, volume=ethbtc_volume, quantity=btc_quantity
@@ -66,7 +70,7 @@ class RightTriangleStrategy(Strategy):
 
     def is_profitable(self):
         ethbtc_quantity = self._last_prices[ETHBTC]['quantity']
-        self.profit = round(float((ethbtc_quantity - 1) * 100), 2)
+        self.profit = round((ethbtc_quantity - 1) * 100, 2)
         return self.profit > self.min_profit
 
 
@@ -76,22 +80,26 @@ class LeftTriangleStrategy(Strategy):
         super().__init__(pairs_data, LEFT_TRIANGLE_STRATEGY)
 
     def parsed_pairs_data(self, pairs_data):
-        ethbtc_ask = round(float(pairs_data[ETHBTC].get('a')), 6)
-        ethbtc_volume = round(float(pairs_data[ETHBTC].get('A')), 4)
+        ethbtc = pairs_data[ETHBTC]
+        ethusdt = pairs_data[ETHUSDT]
+        btcusdt = pairs_data[BTCUSDT]
+
+        ethbtc_ask = float(ethbtc.get('a'))
+        ethbtc_volume = float(ethbtc.get('A'))
         eth_quantity = round(float(self.fees/ethbtc_ask), 8)
         self._last_prices[ETHBTC] = dict(
             ask=ethbtc_ask, volume=ethbtc_volume, quantity=eth_quantity
         )
 
-        ethusdt_bid = round(float(pairs_data[ETHUSDT].get('b')), 2)
-        ethusdt_volume = round(float(pairs_data[ETHUSDT].get('B')), 4)
+        ethusdt_bid = float(ethusdt.get('b'))
+        ethusdt_volume = float(ethusdt.get('B'))
         usdt_quantity = round(float(ethusdt_bid * eth_quantity * self.fees), 8)
         self._last_prices[ETHUSDT] = dict(
             bid=ethusdt_bid, volume=ethusdt_volume, quantity=usdt_quantity
         )
 
-        btcusdt_ask = round(float(pairs_data[BTCUSDT].get('a')), 2)
-        btcusdt_volume = round(float(pairs_data[BTCUSDT].get('A')), 5)
+        btcusdt_ask = float(btcusdt.get('a'))
+        btcusdt_volume = float(btcusdt.get('A'))
         btc_quantity = round(float((usdt_quantity/btcusdt_ask) * self.fees), 8)
         self._last_prices[BTCUSDT] = dict(
             ask=ethusdt_bid, volume=btcusdt_volume, quantity=btc_quantity
@@ -99,5 +107,5 @@ class LeftTriangleStrategy(Strategy):
 
     def is_profitable(self):
         ethbtc_quantity = self._last_prices[BTCUSDT]['quantity']
-        self.profit = round(float((ethbtc_quantity - 1) * 100), 2)
+        self.profit = round((ethbtc_quantity - 1) * 100, 2)
         return self.profit > self.min_profit

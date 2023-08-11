@@ -21,8 +21,8 @@ class PriceObserver:
         for strategy in self.strategies:
             if strategy.is_profitable:
                 strategy.show_profit()
-                trading_client = TradingClient(strategy)
-                trading_client.start()
+                # trading_client = TradingClient(strategy)
+                # trading_client.start()
         self.clear()
 
     def update(self, data):
