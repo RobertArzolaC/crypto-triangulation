@@ -4,8 +4,8 @@ import os
 from binance_client import BinanceClient
 
 from constants import (
-    BTCUSDT, ETHUSDT, ETHBTC, RIGHT_TRIANGLE_STRATEGY, LOG_FILE_PATH,
-    ORDER_TYPE_MARKET, SIDE_BUY, SIDE_SELL
+    FIRST_PAIR, SECOND_PAIR, THIRD_PAIR, RIGHT_TRIANGLE_STRATEGY,
+    LOG_FILE_PATH, ORDER_TYPE_MARKET, SIDE_BUY, SIDE_SELL
 )
 from logger import CryptoLogger
 
@@ -78,21 +78,21 @@ class TradingClient:
         last_prices = self.strategy.get_last_prices()
 
         if self.strategy.name == RIGHT_TRIANGLE_STRATEGY:
-            btc_quantity = float(
-                (last_prices[ETHUSDT]['ask'] * base_quantity) /
-                last_prices[BTCUSDT]['bid']
+            first_pair_quantity = float(
+                (last_prices[SECOND_PAIR]['ask'] * base_quantity) /
+                last_prices[FIRST_PAIR]['bid']
             )
-            btc_quantity = round(btc_quantity, 5)
+            first_pair_quantity = round(first_pair_quantity, 5)
 
-            self.add_order(SellOrder(BTCUSDT, btc_quantity))
-            self.add_order(BuyOrder(ETHUSDT, base_quantity))
-            self.add_order(SellOrder(ETHBTC, base_quantity))
+            self.add_order(SellOrder(FIRST_PAIR, first_pair_quantity))
+            self.add_order(BuyOrder(SECOND_PAIR, base_quantity))
+            self.add_order(SellOrder(THIRD_PAIR, base_quantity))
         else:
-            btc_quantity = float(
-                last_prices[ETHBTC]['ask'] * base_quantity
+            first_pair_quantity = float(
+                last_prices[THIRD_PAIR]['ask'] * base_quantity
             )
-            btc_quantity = round(btc_quantity, 5)
+            first_pair_quantity = round(first_pair_quantity, 5)
 
-            self.add_order(BuyOrder(ETHBTC, base_quantity))
-            self.add_order(SellOrder(ETHUSDT, base_quantity))
-            self.add_order(BuyOrder(BTCUSDT, btc_quantity))
+            self.add_order(BuyOrder(THIRD_PAIR, base_quantity))
+            self.add_order(SellOrder(SECOND_PAIR, base_quantity))
+            self.add_order(BuyOrder(FIRST_PAIR, first_pair_quantity))

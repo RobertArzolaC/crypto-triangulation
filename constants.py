@@ -1,14 +1,14 @@
-BTCUSDT = "BTCUSDT"
-ETHUSDT = "ETHUSDT"
-ETHBTC = "ETHBTC"
+FIRST_PAIR = "BTCUSDT"
+SECOND_PAIR = "ETHUSDT"
+THIRD_PAIR = "ETHBTC"
 
 NUMBER_OF_PAIRS = 3
-PAIRS_CRIPTO = [BTCUSDT, ETHUSDT, ETHBTC]
+PAIRS_CRIPTO = [FIRST_PAIR, SECOND_PAIR, THIRD_PAIR]
 
 RIGHT_TRIANGLE_STRATEGY = "RightTriangleStrategy"
 LEFT_TRIANGLE_STRATEGY = "LeftTriangleStrategy"
 
-BINANCE_WEBSOCKET_URL = "wss://stream.binance.com:9443/ws/"
+EXCHANGE_WEBSOCKET_URL = "wss://stream.binance.com:9443/ws/"
 
 LOGGING_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 LOG_FILE_PATH = "crypto.log"

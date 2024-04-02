@@ -2,19 +2,19 @@ import json
 
 import websocket
 
-from constants import BINANCE_WEBSOCKET_URL, LOG_FILE_PATH
+from constants import EXCHANGE_WEBSOCKET_URL, LOG_FILE_PATH
 from logger import CryptoLogger
 
 
 logger = CryptoLogger(__name__, file_path=LOG_FILE_PATH)
 
 
-class BinanceWebSocket:
+class ExchangeWebSocket:
     def __init__(self, pairs):
         self.pairs = pairs
         self.socket = None
         self.observers = []
-        self.url = BINANCE_WEBSOCKET_URL
+        self.url = EXCHANGE_WEBSOCKET_URL
 
     def register_observer(self, observer):
         self.observers.append(observer)

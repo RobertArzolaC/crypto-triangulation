@@ -1,5 +1,5 @@
 from binance_orders import TradingClient
-from constants import ETHBTC, NUMBER_OF_PAIRS
+from constants import THIRD_PAIR, NUMBER_OF_PAIRS
 from storage import LastPriceStorage
 from strategy_triangulation import RightTriangleStrategy, LeftTriangleStrategy
 
@@ -30,7 +30,7 @@ class PriceObserver:
         if last_price_pair != data:
             price_info = self.last_price_storage.get_state()
             self.last_price_storage.update_last_price(data["s"], data)
-            if data["s"] == ETHBTC and len(price_info) == NUMBER_OF_PAIRS:
+            if data["s"] == THIRD_PAIR and len(price_info) == NUMBER_OF_PAIRS:
                 right_triangle_strategy = RightTriangleStrategy(price_info)
                 left_triangle_strategy = LeftTriangleStrategy(price_info)
 

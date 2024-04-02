@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 
-from binance_websocket import BinanceWebSocket
-from constants import BTCUSDT, ETHUSDT, ETHBTC, PAIRS_CRIPTO
+from exchange_websocket import ExchangeWebSocket
+from constants import FIRST_PAIR, SECOND_PAIR, THIRD_PAIR, PAIRS_CRIPTO
 from observers import PriceObserver
 
 
@@ -9,17 +9,17 @@ load_dotenv()
 
 
 def main():
-    binance_websocket = BinanceWebSocket(PAIRS_CRIPTO)
+    exchange_websocket = ExchangeWebSocket(PAIRS_CRIPTO)
 
-    btcusdt_price_observer = PriceObserver(BTCUSDT)
-    ethusdt_price_observer = PriceObserver(ETHUSDT)
-    ethbtc_price_observer = PriceObserver(ETHBTC)
+    first_pair_observer = PriceObserver(FIRST_PAIR)
+    second_pair_observer = PriceObserver(SECOND_PAIR)
+    third_pair_observer = PriceObserver(THIRD_PAIR)
 
-    binance_websocket.register_observer(btcusdt_price_observer)
-    binance_websocket.register_observer(ethusdt_price_observer)
-    binance_websocket.register_observer(ethbtc_price_observer)
+    exchange_websocket.register_observer(first_pair_observer)
+    exchange_websocket.register_observer(second_pair_observer)
+    exchange_websocket.register_observer(third_pair_observer)
 
-    binance_websocket.start()
+    exchange_websocket.start()
 
 
 if __name__ == "__main__":
