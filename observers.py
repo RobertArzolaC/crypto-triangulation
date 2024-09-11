@@ -1,5 +1,5 @@
 from binance_orders import TradingClient
-from constants import THIRD_PAIR, NUMBER_OF_PAIRS
+from constants import THIRD_PAIR, PAIRS_COUNT
 from storage import LastPriceStorage
 from strategy_triangulation import RightTriangleStrategy, LeftTriangleStrategy
 
@@ -7,34 +7,24 @@ from strategy_triangulation import RightTriangleStrategy, LeftTriangleStrategy
 class PriceObserver:
     def __init__(self, pair):
         self.pair = pair
-        self.strategies = []
-        self.last_price_storage = LastPriceStorage()
-
-    def clear(self):
-        self.strategies = []
-        self.last_price_storage.clear()
-
-    def add_strategy(self, strategy):
-        self.strategies.append(strategy)
-
-    def execute(self):
-        for strategy in self.strategies:
-            if strategy.is_profitable:
-                strategy.show_profit()
-                # trading_client = TradingClient(strategy)
-                # trading_client.start()
-        self.clear()
+        self.storage = LastPriceStorage()
 
     def update(self, data):
-        last_price_pair = self.last_price_storage.get_last_price(data["s"])
+        last_price_pair = self.storage.get_last_price(data["s"])
         if last_price_pair != data:
-            price_info = self.last_price_storage.get_state()
-            self.last_price_storage.update_last_price(data["s"], data)
-            if data["s"] == THIRD_PAIR and len(price_info) == NUMBER_OF_PAIRS:
-                right_triangle_strategy = RightTriangleStrategy(price_info)
-                left_triangle_strategy = LeftTriangleStrategy(price_info)
+            self.storage.update_last_price(data["s"], data)
+            current_state = self.storage.get_state()
 
-                self.add_strategy(right_triangle_strategy)
-                self.add_strategy(left_triangle_strategy)
+            if THIRD_PAIR in self.storage and len(current_state) == PAIRS_COUNT:
+                strategies = [
+                    RightTriangleStrategy(current_state),
+                    LeftTriangleStrategy(current_state)
+                ]
 
-                self.execute()
+                for strategy in strategies:
+                    if strategy.is_profitable:
+                        strategy.show_profit()
+                        # trading_client = TradingClient(strategy)
+                        # trading_client.start()
+
+                self.storage.clear()
