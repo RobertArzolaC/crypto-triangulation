@@ -77,9 +77,15 @@ class BinanceClient:
         return data
 
     def get_exchange_info(self, symbols: list[str]) -> dict[str, Any]:
-        """Obtiene exchangeInfo (filtros de trading) de los símbolos dados."""
+        """Obtiene exchangeInfo (filtros de trading) de los símbolos dados.
+
+        Nota: Binance rechaza espacios en el array JSON del parámetro
+        `symbols` (error -1100); se serializa de forma compacta.
+        """
         return self._request(
-            "GET", "/api/v3/exchangeInfo", {"symbols": json.dumps(symbols)}
+            "GET",
+            "/api/v3/exchangeInfo",
+            {"symbols": json.dumps(symbols, separators=(",", ":"))},
         )
 
     def create_market_order(
