@@ -41,13 +41,20 @@ class BookTickerStream:
             self._ws.close()
 
     def _handle_message(self, _ws: websocket.WebSocket, message: str) -> None:
-        """Parsea cada mensaje y lo entrega al callback; ignora los inválidos."""
+        """Parsea cada mensaje y lo entrega al callback; ignora los inválidos.
+
+        Nunca propaga excepciones: un fallo en el callback no debe tumbar el
+        stream (defensa en profundidad; el motor también se autoprotege).
+        """
         try:
             ticker = BookTicker.from_ws(json.loads(message))
         except (KeyError, ValueError) as exc:
             logger.warning("Mensaje inválido ignorado: %s", exc)
             return
-        self._on_tick(ticker)
+        try:
+            self._on_tick(ticker)
+        except Exception:
+            logger.exception("Error en el callback de tick (%s)", ticker.symbol)
 
     def _handle_error(self, _ws: websocket.WebSocket, error: object) -> None:
         logger.error("Error en websocket: %s", error)

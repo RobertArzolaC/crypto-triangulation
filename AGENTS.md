@@ -11,12 +11,13 @@ Detecta ciclos rentables con datos bookTicker en tiempo real y opera
 - `triangulation/config.py` — Settings desde .env (fee, umbrales, dry_run)
 - `triangulation/models.py` — BookTicker dataclass
 - `triangulation/storage.py` — Precios thread-safe con frescura
-- `triangulation/strategy.py` — Matemática de arbitraje (2 direcciones)
+- `triangulation/strategy.py` — Cálculo de ciclos (2 direcciones; sin umbral)
+- `triangulation/observer.py` — Métricas de proximidad a rentabilidad (STATS)
 - `triangulation/execution.py` — Cliente Binance + executor (dry-run aware)
 - `triangulation/market_data.py` — WebSocket bookTicker
-- `triangulation/engine.py` — Orquestación tick → evaluación → ejecución
-- `tests/` — pytest (estrategia, config, engine)
-- `main.py` — Entrypoint
+- `triangulation/engine.py` — Orquestación tick → medición → ejecución
+- `tests/` — pytest (estrategia, config, engine, observer)
+- `main.py` — Entrypoint (supervisor con reconexión + resumen al detener)
 
 ## Comandos
 
@@ -40,8 +41,12 @@ Detecta ciclos rentables con datos bookTicker en tiempo real y opera
 - Verificar liquidez top-of-book en las 3 patas antes de operar
 - Respetar `LOT_SIZE` y `MIN_NOTIONAL` de exchangeInfo antes de enviar órdenes
 - Si una pata falla en ejecución real: abortar restantes + log crítico (no hay unwind)
+- La estrategia NO filtra por umbral: `strategy.py` siempre reporta el profit del ciclo; el umbral (`MIN_PROFIT_PCT`) se aplica solo en `engine.py` al decidir ejecución
+- La medición (observer) es continua: el cooldown bloquea solo la ejecución, nunca la evaluación
+- `on_tick` y el callback del WS nunca propagan excepciones (el stream no debe morir)
 
 ## Configuración (.env)
 
 `BINANCE_API_KEY`, `BINANCE_API_SECRET`, `DRY_RUN`, `FEE_RATE`,
-`MIN_PROFIT_PCT`, `TRADE_AMOUNT`, `MAX_PRICE_AGE_MS`, `COOLDOWN_S`
+`MIN_PROFIT_PCT`, `TRADE_AMOUNT`, `MAX_PRICE_AGE_MS`, `COOLDOWN_S`,
+`STATS_INTERVAL_S`

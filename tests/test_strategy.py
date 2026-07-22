@@ -12,7 +12,7 @@ from triangulation.strategy import (
     SIDE_SELL,
     build_legs,
     evaluate,
-    find_opportunity,
+    find_best_cycle,
 )
 
 FEE = 0.00075  # 0.075% con BNB
@@ -52,42 +52,46 @@ def profitable_reverse_tickers() -> dict[str, BookTicker]:
 
 
 def test_forward_profitable() -> None:
-    """Un ciclo FORWARD con edge neto > umbral produce Opportunity correcta."""
+    """Un ciclo FORWARD con edge produce CycleResult con profit neto correcto."""
     tickers = profitable_forward_tickers()
     legs = build_legs(
         DIRECTION_FORWARD, tickers["BTCUSDT"], tickers["ETHUSDT"], tickers["ETHBTC"]
     )
-    opp = evaluate(DIRECTION_FORWARD, legs, amount=1.0, fee_rate=FEE, min_profit_pct=0.1)
+    cycle = evaluate(DIRECTION_FORWARD, legs, amount=1.0, fee_rate=FEE)
 
-    assert opp is not None
-    assert opp.direction == DIRECTION_FORWARD
+    assert cycle is not None
+    assert cycle.direction == DIRECTION_FORWARD
     # neto = 1.005 * (1 - 0.00075)^3 - 1 ≈ 0.27404%
-    assert opp.profit_pct == pytest.approx(0.27404, abs=1e-4)
-    assert opp.final_amount == pytest.approx(1.0027404, abs=1e-6)
-    assert [o.side for o in opp.orders] == [SIDE_SELL, SIDE_BUY, SIDE_SELL]
-    assert [o.symbol for o in opp.orders] == list(PAIRS)
-    assert opp.orders[0].quantity == pytest.approx(1.0)
-    assert opp.orders[1].quantity == pytest.approx(14.98875)
+    assert cycle.profit_pct == pytest.approx(0.27404, abs=1e-4)
+    assert cycle.final_amount == pytest.approx(1.0027404, abs=1e-6)
+    assert [o.side for o in cycle.orders] == [SIDE_SELL, SIDE_BUY, SIDE_SELL]
+    assert [o.symbol for o in cycle.orders] == list(PAIRS)
+    assert cycle.orders[0].quantity == pytest.approx(1.0)
+    assert cycle.orders[1].quantity == pytest.approx(14.98875)
 
 
 def test_reverse_profitable() -> None:
-    """Un ciclo REVERSE con edge neto > umbral produce Opportunity correcta."""
+    """Un ciclo REVERSE con edge produce CycleResult con profit neto correcto."""
     tickers = profitable_reverse_tickers()
     legs = build_legs(
         DIRECTION_REVERSE, tickers["BTCUSDT"], tickers["ETHUSDT"], tickers["ETHBTC"]
     )
-    opp = evaluate(DIRECTION_REVERSE, legs, amount=1.0, fee_rate=FEE, min_profit_pct=0.1)
+    cycle = evaluate(DIRECTION_REVERSE, legs, amount=1.0, fee_rate=FEE)
 
-    assert opp is not None
-    assert opp.direction == DIRECTION_REVERSE
+    assert cycle is not None
+    assert cycle.direction == DIRECTION_REVERSE
     # neto = 2001 / (0.0666 * 29910) * (1 - 0.00075)^3 - 1 ≈ 0.22566%
-    assert opp.profit_pct == pytest.approx(0.22566, abs=1e-4)
-    assert [o.side for o in opp.orders] == [SIDE_BUY, SIDE_SELL, SIDE_BUY]
-    assert [o.symbol for o in opp.orders] == ["ETHBTC", "ETHUSDT", "BTCUSDT"]
+    assert cycle.profit_pct == pytest.approx(0.22566, abs=1e-4)
+    assert [o.side for o in cycle.orders] == [SIDE_BUY, SIDE_SELL, SIDE_BUY]
+    assert [o.symbol for o in cycle.orders] == ["ETHBTC", "ETHUSDT", "BTCUSDT"]
 
 
-def test_edge_below_fees_not_profitable() -> None:
-    """Un edge bruto menor que los fees de las 3 patas se descarta."""
+def test_edge_below_fees_yields_negative_profit() -> None:
+    """Un edge bruto menor que los fees devuelve profit neto negativo (no None).
+
+    La estrategia ya no filtra por umbral: reporta el resultado para que el
+    motor pueda medir la proximidad a la rentabilidad.
+    """
     tickers = {
         "BTCUSDT": make_ticker("BTCUSDT", bid=30000.0, ask=30010.0),
         "ETHUSDT": make_ticker("ETHUSDT", bid=1999.0, ask=2000.0),
@@ -97,54 +101,43 @@ def test_edge_below_fees_not_profitable() -> None:
         DIRECTION_FORWARD, tickers["BTCUSDT"], tickers["ETHUSDT"], tickers["ETHBTC"]
     )
     # bruto = 15 * 0.0667 = 1.0005 -> neto = 1.0005 * 0.9977517 - 1 ≈ -0.175%
-    opp = evaluate(DIRECTION_FORWARD, legs, amount=1.0, fee_rate=FEE, min_profit_pct=0.1)
-    assert opp is None
-
-
-def test_min_profit_threshold() -> None:
-    """Un ciclo rentable pero bajo el umbral mínimo se descarta."""
-    tickers = profitable_forward_tickers()
-    legs = build_legs(
-        DIRECTION_FORWARD, tickers["BTCUSDT"], tickers["ETHUSDT"], tickers["ETHBTC"]
-    )
-    # profit neto ≈ 0.274% < umbral 0.5%
-    opp = evaluate(DIRECTION_FORWARD, legs, amount=1.0, fee_rate=FEE, min_profit_pct=0.5)
-    assert opp is None
+    cycle = evaluate(DIRECTION_FORWARD, legs, amount=1.0, fee_rate=FEE)
+    assert cycle is not None
+    assert cycle.profit_pct == pytest.approx(-0.17494, abs=1e-4)
+    assert cycle.profit_pct < 0
 
 
 def test_insufficient_liquidity_rejected() -> None:
-    """Si el top-of-book no cubre la cantidad requerida, se descarta el ciclo."""
+    """Si el top-of-book no cubre la cantidad requerida, el ciclo es None."""
     tickers = profitable_forward_tickers()
     tickers["BTCUSDT"] = make_ticker("BTCUSDT", bid=30000.0, ask=30010.0, bid_qty=0.5)
     legs = build_legs(
         DIRECTION_FORWARD, tickers["BTCUSDT"], tickers["ETHUSDT"], tickers["ETHBTC"]
     )
     # se requieren vender 1.0 BTC pero solo hay 0.5 en el bid
-    opp = evaluate(DIRECTION_FORWARD, legs, amount=1.0, fee_rate=FEE, min_profit_pct=0.1)
-    assert opp is None
+    cycle = evaluate(DIRECTION_FORWARD, legs, amount=1.0, fee_rate=FEE)
+    assert cycle is None
 
 
-def test_find_opportunity_forward() -> None:
-    """find_opportunity retorna la dirección rentable con el libro FORWARD."""
-    opp = find_opportunity(
-        profitable_forward_tickers(), PAIRS,
-        amount=0.002, fee_rate=FEE, min_profit_pct=0.1,
+def test_find_best_cycle_forward() -> None:
+    """find_best_cycle retorna la dirección más rentable con el libro FORWARD."""
+    cycle = find_best_cycle(
+        profitable_forward_tickers(), PAIRS, amount=0.002, fee_rate=FEE
     )
-    assert opp is not None
-    assert opp.direction == DIRECTION_FORWARD
+    assert cycle is not None
+    assert cycle.direction == DIRECTION_FORWARD
 
 
-def test_find_opportunity_none_when_no_edge() -> None:
-    """Sin edge en ninguna dirección, no hay oportunidad."""
+def test_find_best_cycle_reports_negative_edge() -> None:
+    """Sin edge en ninguna dirección, igualmente se reporta el mejor ciclo."""
     tickers = {
         "BTCUSDT": make_ticker("BTCUSDT", bid=30000.0, ask=30010.0),
         "ETHUSDT": make_ticker("ETHUSDT", bid=2000.0, ask=2001.0),
         "ETHBTC": make_ticker("ETHBTC", bid=0.06668, ask=0.06672),
     }
-    opp = find_opportunity(
-        tickers, PAIRS, amount=0.002, fee_rate=FEE, min_profit_pct=0.1
-    )
-    assert opp is None
+    cycle = find_best_cycle(tickers, PAIRS, amount=0.002, fee_rate=FEE)
+    assert cycle is not None
+    assert cycle.profit_pct < 0
 
 
 def test_build_legs_invalid_direction() -> None:

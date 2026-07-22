@@ -8,8 +8,9 @@ Dirección REVERSE:  BTC --(compra ETHBTC @ ask)--> ETH --(vende ETHUSDT @ bid)-
                     USDT --(compra BTCUSDT @ ask)--> BTC
 
 En cada pata se descuenta la comisión (fee_rate) sobre el monto recibido, por lo
-que el ciclo completo aplica (1 - fee_rate)^3. Una oportunidad solo es válida si
-el profit neto supera min_profit_pct y la liquidez top-of-book cubre cada pata.
+que el ciclo completo aplica (1 - fee_rate)^3. La evaluación es independiente del
+umbral de profit: devuelve siempre el resultado del ciclo (incluso negativo) para
+que el motor pueda medir la proximidad a la rentabilidad y decidir si ejecuta.
 """
 
 from dataclasses import dataclass
@@ -58,12 +59,13 @@ class PlannedOrder:
 
 
 @dataclass(frozen=True)
-class Opportunity:
-    """Oportunidad de arbitraje detectada.
+class CycleResult:
+    """Resultado de evaluar un ciclo completo del triángulo.
 
     Attributes:
         direction: DIRECTION_FORWARD o DIRECTION_REVERSE.
-        profit_pct: Profit neto estimado en % sobre el monto inicial.
+        profit_pct: Profit neto estimado en % sobre el monto inicial (post-fees;
+            puede ser negativo).
         final_amount: Monto final estimado en BTC.
         orders: Las 3 órdenes planificadas del ciclo, en orden de ejecución.
     """
@@ -114,8 +116,7 @@ def evaluate(
     legs: list[Leg],
     amount: float,
     fee_rate: float,
-    min_profit_pct: float,
-) -> Opportunity | None:
+) -> CycleResult | None:
     """Evalúa un ciclo completo simulando las 3 patas con fees y liquidez.
 
     Args:
@@ -123,10 +124,11 @@ def evaluate(
         legs: Las 3 patas en orden de ejecución.
         amount: Monto inicial en BTC.
         fee_rate: Comisión por pata (ej. 0.00075 = 0.075% con BNB).
-        min_profit_pct: Profit neto mínimo en % para considerar la oportunidad.
 
     Returns:
-        Opportunity si el ciclo es rentable y líquido; None en caso contrario.
+        CycleResult con el profit neto del ciclo (puede ser negativo), o None
+        si la liquidez top-of-book no cubre alguna pata. El umbral de profit
+        lo aplica el motor, no la estrategia.
     """
     value = amount
     orders: list[PlannedOrder] = []
@@ -143,18 +145,15 @@ def evaluate(
         value = received * (1 - fee_rate)
 
     profit_pct = (value / amount - 1) * 100
-    if profit_pct <= min_profit_pct:
-        return None
-    return Opportunity(direction, profit_pct, value, tuple(orders))
+    return CycleResult(direction, profit_pct, value, tuple(orders))
 
 
-def find_opportunity(
+def find_best_cycle(
     tickers: dict[str, BookTicker],
     pairs: tuple[str, str, str],
     amount: float,
     fee_rate: float,
-    min_profit_pct: float,
-) -> Opportunity | None:
+) -> CycleResult | None:
     """Evalúa ambas direcciones del triángulo y retorna la más rentable.
 
     Args:
@@ -162,22 +161,22 @@ def find_opportunity(
         pairs: Los 3 pares del triángulo en orden (BTCUSDT, ETHUSDT, ETHBTC).
         amount: Monto inicial en BTC.
         fee_rate: Comisión por pata.
-        min_profit_pct: Profit neto mínimo en %.
 
     Returns:
-        La Opportunity de mayor profit neto, o None si ninguna dirección aplica.
+        El CycleResult de mayor profit neto (puede ser negativo), o None si
+        ninguna dirección tiene liquidez top-of-book suficiente.
     """
     btcusdt = tickers[pairs[0]]
     ethusdt = tickers[pairs[1]]
     ethbtc = tickers[pairs[2]]
 
-    candidates: list[Opportunity] = []
+    candidates: list[CycleResult] = []
     for direction in (DIRECTION_FORWARD, DIRECTION_REVERSE):
         legs = build_legs(direction, btcusdt, ethusdt, ethbtc)
-        opportunity = evaluate(direction, legs, amount, fee_rate, min_profit_pct)
-        if opportunity is not None:
-            candidates.append(opportunity)
+        cycle = evaluate(direction, legs, amount, fee_rate)
+        if cycle is not None:
+            candidates.append(cycle)
 
     if not candidates:
         return None
-    return max(candidates, key=lambda opp: opp.profit_pct)
+    return max(candidates, key=lambda cycle: cycle.profit_pct)

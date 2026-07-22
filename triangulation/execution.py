@@ -17,7 +17,7 @@ from urllib.parse import urlencode
 
 import requests
 
-from triangulation.strategy import Opportunity, PlannedOrder
+from triangulation.strategy import CycleResult, PlannedOrder
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +169,7 @@ def load_symbol_filters(
 
 
 class OrderExecutor:
-    """Ejecuta (o simula en dry-run) las patas de una oportunidad."""
+    """Ejecuta (o simula en dry-run) las patas de un ciclo rentable."""
 
     def __init__(
         self,
@@ -181,17 +181,17 @@ class OrderExecutor:
         self._filters = filters
         self._dry_run = dry_run
 
-    def execute(self, opportunity: Opportunity) -> bool:
+    def execute(self, cycle: CycleResult) -> bool:
         """Ejecuta las 3 patas secuencialmente.
 
         Args:
-            opportunity: Oportunidad detectada por la estrategia.
+            cycle: Ciclo rentable detectado por la estrategia.
 
         Returns:
             True si el ciclo se completó (o se simuló en dry-run); False si se
             abortó por filtros no cumplidos o por un fallo en alguna pata.
         """
-        planned = self._apply_filters(opportunity.orders)
+        planned = self._apply_filters(cycle.orders)
         if planned is None:
             return False
 

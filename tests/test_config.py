@@ -13,6 +13,7 @@ ENV_VARS = [
     "TRADE_AMOUNT",
     "MAX_PRICE_AGE_MS",
     "COOLDOWN_S",
+    "STATS_INTERVAL_S",
 ]
 
 
@@ -32,6 +33,7 @@ def test_defaults() -> None:
     assert settings.trade_amount == pytest.approx(0.002)
     assert settings.max_price_age_ms == 1500
     assert settings.cooldown_s == pytest.approx(5.0)
+    assert settings.stats_interval_s == pytest.approx(60.0)
     assert settings.pairs == ("BTCUSDT", "ETHUSDT", "ETHBTC")
 
 
@@ -45,6 +47,7 @@ def test_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TRADE_AMOUNT", "0.005")
     monkeypatch.setenv("MAX_PRICE_AGE_MS", "800")
     monkeypatch.setenv("COOLDOWN_S", "10")
+    monkeypatch.setenv("STATS_INTERVAL_S", "15")
 
     settings = Settings.from_env()
     assert settings.dry_run is False
@@ -54,6 +57,7 @@ def test_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.trade_amount == pytest.approx(0.005)
     assert settings.max_price_age_ms == 800
     assert settings.cooldown_s == pytest.approx(10.0)
+    assert settings.stats_interval_s == pytest.approx(15.0)
 
 
 def test_real_mode_requires_credentials(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,6 +75,7 @@ def test_real_mode_requires_credentials(monkeypatch: pytest.MonkeyPatch) -> None
         {"trade_amount": 0.0},
         {"max_price_age_ms": 0},
         {"cooldown_s": -1.0},
+        {"stats_interval_s": 0.0},
         {"pairs": ("BTCUSDT", "ETHUSDT")},
     ],
 )

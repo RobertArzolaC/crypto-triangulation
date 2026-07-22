@@ -11,3 +11,18 @@ Deseo que realices mejoras en el proyecto. Considera los siguientes puntos:
 * Deseo que elimines codigo que se quedara sin uso o es innecesario.
 * Deseo que actualices la lógica necesaria para la rentabilidad esperada.
 Genera o actualiza el codigo necesario para lograr los puntos mencionados.
+
+
+Deseo actualizar el proyecto. Considera los siguientes puntos:
+* Deseo que realices uso de los siguientes skills:
+    - brainstorming
+    - refactor-code
+    - python-pro
+    - architect-review
+* Deseo tener un log que me muestre que tan cerca estoy de rentabilidad.
+* Deseo tener claro si deja o no el script ejecutando en un droplet para ver si encuentra rentabilidad.
+* Deseo que me brindes tu opinion sobre el proyecto y si vez la viabilidad de ser rentable.
+* Deseo que me brindes mejoras si estan ayudarian a lograr la rentabilidad deseada.
+* Deseo que elimines codigo que se quedara sin uso o es innecesario.
+* Deseo que actualices la lógica necesaria para la rentabilidad esperada.
+Genera o actualiza el codigo necesario para lograr los puntos mencionados.
