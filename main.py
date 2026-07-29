@@ -17,7 +17,6 @@ from triangulation.execution import (
 from triangulation.logger import setup_logging
 from triangulation.market_data import BookTickerStream
 from triangulation.observer import ProfitabilityObserver
-from triangulation.storage import PriceStorage
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +58,7 @@ def main() -> None:
     filters = _load_filters(client, list(settings.pairs))
     executor = OrderExecutor(client, filters, dry_run=settings.dry_run)
     observer = ProfitabilityObserver(settings.min_profit_pct, settings.stats_interval_s)
-    engine = ArbitrageEngine(settings, PriceStorage(), executor, observer)
+    engine = ArbitrageEngine(settings, executor, observer)
     stream = BookTickerStream(settings.ws_base_url, settings.pairs, engine.on_tick)
 
     logger.info(

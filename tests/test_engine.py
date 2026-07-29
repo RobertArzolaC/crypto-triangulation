@@ -5,7 +5,6 @@ import time
 from triangulation.config import Settings
 from triangulation.engine import ArbitrageEngine
 from triangulation.models import BookTicker
-from triangulation.storage import PriceStorage
 from triangulation.strategy import DIRECTION_FORWARD, CycleResult
 
 
@@ -44,15 +43,15 @@ def make_ticker(symbol: str, bid: float, ask: float, ts: float | None = None) ->
 
 def profitable_forward_ticks(engine: ArbitrageEngine, ts: float | None = None) -> None:
     """Envía al motor los 3 ticks de un libro con edge FORWARD."""
-    engine.on_tick(make_ticker("BTCUSDT", 30000.0, 30010.0, ts))
-    engine.on_tick(make_ticker("ETHUSDT", 1999.0, 2000.0, ts))
+    engine.on_tick(make_ticker("BTCFDUSD", 30000.0, 30010.0, ts))
+    engine.on_tick(make_ticker("ETHFDUSD", 1999.0, 2000.0, ts))
     engine.on_tick(make_ticker("ETHBTC", 0.067, 0.0671, ts))
 
 
 def no_edge_ticks(engine: ArbitrageEngine, ts: float | None = None) -> None:
     """Envía al motor los 3 ticks de un libro sin edge en ninguna dirección."""
-    engine.on_tick(make_ticker("BTCUSDT", 30000.0, 30010.0, ts))
-    engine.on_tick(make_ticker("ETHUSDT", 2000.0, 2001.0, ts))
+    engine.on_tick(make_ticker("BTCFDUSD", 30000.0, 30010.0, ts))
+    engine.on_tick(make_ticker("ETHFDUSD", 2000.0, 2001.0, ts))
     engine.on_tick(make_ticker("ETHBTC", 0.06668, 0.06672, ts))
 
 
@@ -65,7 +64,7 @@ def make_engine(
     )
     executor = StubExecutor()
     observer = StubObserver()
-    engine = ArbitrageEngine(settings, PriceStorage(), executor, observer)  # type: ignore[arg-type]
+    engine = ArbitrageEngine(settings, executor, observer)  # type: ignore[arg-type]
     return engine, executor, observer
 
 
@@ -102,8 +101,8 @@ def test_stale_prices_are_ignored() -> None:
 def test_missing_pair_is_ignored() -> None:
     """Sin los 3 pares presentes no se evalúa."""
     engine, executor, observer = make_engine()
-    engine.on_tick(make_ticker("BTCUSDT", 30000.0, 30010.0))
-    engine.on_tick(make_ticker("ETHUSDT", 1999.0, 2000.0))
+    engine.on_tick(make_ticker("BTCFDUSD", 30000.0, 30010.0))
+    engine.on_tick(make_ticker("ETHFDUSD", 1999.0, 2000.0))
 
     assert executor.executed == []
     assert observer.recorded == []
@@ -140,6 +139,6 @@ def test_on_tick_never_raises() -> None:
             raise RuntimeError("fallo simulado")
 
     settings = Settings(api_key="", api_secret="", cooldown_s=0.0, trade_amount=1.0)
-    engine = ArbitrageEngine(settings, PriceStorage(), FailingExecutor(), StubObserver())  # type: ignore[arg-type]
+    engine = ArbitrageEngine(settings, FailingExecutor(), StubObserver())  # type: ignore[arg-type]
 
     profitable_forward_ticks(engine)  # no debe lanzar

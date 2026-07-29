@@ -7,7 +7,6 @@ from triangulation.config import Settings
 from triangulation.execution import OrderExecutor
 from triangulation.models import BookTicker
 from triangulation.observer import ProfitabilityObserver
-from triangulation.storage import PriceStorage
 from triangulation.strategy import find_best_cycle
 
 logger = logging.getLogger(__name__)
@@ -23,17 +22,16 @@ class ArbitrageEngine:
     def __init__(
         self,
         settings: Settings,
-        storage: PriceStorage,
         executor: OrderExecutor,
         observer: ProfitabilityObserver | None = None,
     ) -> None:
         self._settings = settings
-        self._storage = storage
         self._executor = executor
         self._observer = observer or ProfitabilityObserver(
             settings.min_profit_pct, settings.stats_interval_s
         )
         self._last_execution_ts = 0.0
+        self._tickers: dict[str, BookTicker] = {}
 
     def on_tick(self, ticker: BookTicker) -> None:
         """Procesa un tick: actualiza precios, mide y evalúa el triángulo.
@@ -47,14 +45,13 @@ class ArbitrageEngine:
 
     def _process_tick(self, ticker: BookTicker) -> None:
         """Lógica del tick: frescura -> medición -> decisión de ejecución."""
-        self._storage.update(ticker)
-        tickers = self._storage.snapshot()
+        self._tickers[ticker.symbol] = ticker
 
-        if not self._all_fresh(tickers):
+        if not self._all_fresh():
             return
 
         cycle = find_best_cycle(
-            tickers,
+            self._tickers,
             pairs=self._settings.pairs,
             amount=self._settings.trade_amount,
             fee_rate=self._settings.fee_rate,
@@ -77,11 +74,11 @@ class ArbitrageEngine:
         if self._executor.execute(cycle):
             self._last_execution_ts = time.time()
 
-    def _all_fresh(self, tickers: dict[str, BookTicker]) -> bool:
+    def _all_fresh(self) -> bool:
         """True solo si los 3 pares tienen precio y ninguno está obsoleto."""
         max_age = self._settings.max_price_age_ms
         return all(
-            pair in tickers and tickers[pair].age_ms() <= max_age
+            pair in self._tickers and self._tickers[pair].age_ms() <= max_age
             for pair in self._settings.pairs
         )
 

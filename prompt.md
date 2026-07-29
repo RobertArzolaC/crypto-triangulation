@@ -26,3 +26,16 @@ Deseo actualizar el proyecto. Considera los siguientes puntos:
 * Deseo que elimines codigo que se quedara sin uso o es innecesario.
 * Deseo que actualices la lógica necesaria para la rentabilidad esperada.
 Genera o actualiza el codigo necesario para lograr los puntos mencionados.
+
+
+Deseo que evalues la estrategia. Considera los siguientes puntos:
+* Deseo que realices uso de los siguientes skills:
+    - brainstorming
+    - refactor-code
+    - python-pro
+    - architect-review
+* Deseo que revises la impresiones del en el servidor de producción.
+* Deseo que evalues si la estrategia es la correcta según la impresiones mostradas.
+* Deseo que me brindes mejoras si estan ayudarian a lograr la rentabilidad deseada.
+* Deseo que elimines codigo que se quedara sin uso o es innecesario.
+Genera o actualiza el codigo necesario para lograr los puntos mencionados si es necesario.

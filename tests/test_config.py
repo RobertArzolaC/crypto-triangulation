@@ -28,13 +28,13 @@ def test_defaults() -> None:
     """Sin variables de entorno se usan los defaults seguros."""
     settings = Settings.from_env()
     assert settings.dry_run is True
-    assert settings.fee_rate == pytest.approx(0.00075)
+    assert settings.fee_rate == pytest.approx(0.00025)
     assert settings.min_profit_pct == pytest.approx(0.1)
     assert settings.trade_amount == pytest.approx(0.002)
     assert settings.max_price_age_ms == 1500
     assert settings.cooldown_s == pytest.approx(5.0)
     assert settings.stats_interval_s == pytest.approx(60.0)
-    assert settings.pairs == ("BTCUSDT", "ETHUSDT", "ETHBTC")
+    assert settings.pairs == ("BTCFDUSD", "ETHFDUSD", "ETHBTC")
 
 
 def test_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
