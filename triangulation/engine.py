@@ -1,5 +1,6 @@
 """Orquestación: ticks de mercado -> evaluación de estrategia -> ejecución."""
 
+import asyncio
 import logging
 import time
 
@@ -33,17 +34,17 @@ class ArbitrageEngine:
         self._last_execution_ts = 0.0
         self._tickers: dict[str, BookTicker] = {}
 
-    def on_tick(self, ticker: BookTicker) -> None:
+    async def on_tick(self, ticker: BookTicker) -> None:
         """Procesa un tick: actualiza precios, mide y evalúa el triángulo.
 
         Nunca propaga excepciones: un tick problemático no debe tumbar el stream.
         """
         try:
-            self._process_tick(ticker)
+            await self._process_tick(ticker)
         except Exception:
             logger.exception("Error procesando tick de %s", ticker.symbol)
 
-    def _process_tick(self, ticker: BookTicker) -> None:
+    async def _process_tick(self, ticker: BookTicker) -> None:
         """Lógica del tick: frescura -> medición -> decisión de ejecución."""
         self._tickers[ticker.symbol] = ticker
 
@@ -71,7 +72,7 @@ class ArbitrageEngine:
             self._settings.trade_amount,
             cycle.final_amount,
         )
-        if self._executor.execute(cycle):
+        if await self._executor.execute(cycle):
             self._last_execution_ts = time.time()
 
     def _all_fresh(self) -> bool:

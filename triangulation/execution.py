@@ -15,7 +15,8 @@ from decimal import ROUND_DOWN, Decimal
 from typing import Any
 from urllib.parse import urlencode
 
-import requests
+import aiohttp
+import asyncio
 
 from triangulation.strategy import CycleResult, PlannedOrder
 
@@ -36,11 +37,22 @@ class BinanceClient:
         base_url: str = "https://api.binance.com",
         timeout_s: float = 10.0,
     ) -> None:
+        self._api_key = api_key
         self._api_secret = api_secret
         self._base_url = base_url.rstrip("/")
         self._timeout_s = timeout_s
-        self._session = requests.Session()
-        self._session.headers["X-MBX-APIKEY"] = api_key
+        self._session: aiohttp.ClientSession | None = None
+
+    async def get_session(self) -> aiohttp.ClientSession:
+        if self._session is None:
+            self._session = aiohttp.ClientSession(
+                headers={"X-MBX-APIKEY": self._api_key}
+            )
+        return self._session
+
+    async def close(self) -> None:
+        if self._session is not None:
+            await self._session.close()
 
     def _sign(self, params: dict[str, Any]) -> str:
         """Genera la firma HMAC-SHA256 del query string."""
@@ -49,7 +61,7 @@ class BinanceClient:
             self._api_secret.encode(), query.encode(), hashlib.sha256
         ).hexdigest()
 
-    def _request(
+    async def _request(
         self,
         method: str,
         path: str,
@@ -66,40 +78,44 @@ class BinanceClient:
             params["timestamp"] = int(time.time() * 1000)
             params["signature"] = self._sign(params)
 
-        response = self._session.request(
-            method, f"{self._base_url}{path}", params=params, timeout=self._timeout_s
-        )
-        data = response.json()
-        if response.status_code != 200:
-            raise BinanceAPIError(
-                f"Binance error {data.get('code')}: {data.get('msg')}"
-            )
-        return data
+        session = await self.get_session()
+        timeout = aiohttp.ClientTimeout(total=self._timeout_s)
+        async with session.request(
+            method, f"{self._base_url}{path}", params=params, timeout=timeout
+        ) as response:
+            data = await response.json()
+            if response.status != 200:
+                raise BinanceAPIError(
+                    f"Binance error {data.get('code')}: {data.get('msg')}"
+                )
+            return data
 
-    def get_exchange_info(self, symbols: list[str]) -> dict[str, Any]:
+    async def get_exchange_info(self, symbols: list[str]) -> dict[str, Any]:
         """Obtiene exchangeInfo (filtros de trading) de los símbolos dados.
 
         Nota: Binance rechaza espacios en el array JSON del parámetro
         `symbols` (error -1100); se serializa de forma compacta.
         """
-        return self._request(
+        return await self._request(
             "GET",
             "/api/v3/exchangeInfo",
             {"symbols": json.dumps(symbols, separators=(",", ":"))},
         )
 
-    def create_market_order(
-        self, symbol: str, side: str, quantity: float
+    async def create_fok_order(
+        self, symbol: str, side: str, quantity: float, price: float
     ) -> dict[str, Any]:
-        """Crea una orden market firmada. Retorna el fill de Binance."""
-        return self._request(
+        """Crea una orden LIMIT FOK firmada. Retorna el fill de Binance."""
+        return await self._request(
             "POST",
             "/api/v3/order",
             {
                 "symbol": symbol,
                 "side": side,
-                "type": "MARKET",
+                "type": "LIMIT",
+                "timeInForce": "FOK",
                 "quantity": quantity,
+                "price": price,
             },
             signed=True,
         )
@@ -157,11 +173,11 @@ def _floor_to_step(quantity: float, step: float) -> float:
     return float(steps * step_dec)
 
 
-def load_symbol_filters(
+async def load_symbol_filters(
     client: BinanceClient, symbols: list[str]
 ) -> dict[str, SymbolFilters]:
     """Descarga exchangeInfo y construye los filtros por símbolo."""
-    info = client.get_exchange_info(symbols)
+    info = await client.get_exchange_info(symbols)
     return {
         entry["symbol"]: SymbolFilters.from_exchange_info(entry)
         for entry in info["symbols"]
@@ -181,8 +197,8 @@ class OrderExecutor:
         self._filters = filters
         self._dry_run = dry_run
 
-    def execute(self, cycle: CycleResult) -> bool:
-        """Ejecuta las 3 patas secuencialmente.
+    async def execute(self, cycle: CycleResult) -> bool:
+        """Ejecuta las 3 patas simultáneamente con aiohttp y FOK.
 
         Args:
             cycle: Ciclo rentable detectado por la estrategia.
@@ -198,29 +214,40 @@ class OrderExecutor:
         if self._dry_run:
             for order in planned:
                 logger.info(
-                    "[DRY-RUN] %s %s qty=%.8f @ %.8f",
+                    "[DRY-RUN] %s %s qty=%.8f @ %.8f (FOK simultáneo)",
                     order.side, order.symbol, order.quantity, order.price,
                 )
             return True
 
+        tasks = []
         for order in planned:
-            try:
-                result = self._client.create_market_order(
-                    order.symbol, order.side, order.quantity
+            tasks.append(
+                self._client.create_fok_order(
+                    order.symbol, order.side, order.quantity, order.price
                 )
-                logger.info(
-                    "Orden ejecutada: %s %s qty=%.8f -> status=%s",
-                    order.side, order.symbol, order.quantity,
-                    result.get("status", "?"),
-                )
-            except (BinanceAPIError, requests.RequestException) as exc:
-                logger.critical(
-                    "FALLO en pata %s %s: %s. Patas restantes abortadas; "
-                    "revisar posición manualmente (no hay unwind automático).",
-                    order.side, order.symbol, exc,
-                )
-                return False
-        return True
+            )
+
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            success = True
+            for i, result in enumerate(results):
+                order = planned[i]
+                if isinstance(result, Exception):
+                    logger.critical(
+                        "FALLO simultáneo en pata %s %s: %s.",
+                        order.side, order.symbol, result,
+                    )
+                    success = False
+                else:
+                    logger.info(
+                        "Orden ejecutada: %s %s qty=%.8f -> status=%s",
+                        order.side, order.symbol, order.quantity,
+                        result.get("status", "?"),
+                    )
+            return success
+        except Exception as exc:
+            logger.critical("Error general en ejecución simultánea: %s", exc)
+            return False
 
     def _apply_filters(
         self, orders: tuple[PlannedOrder, ...]

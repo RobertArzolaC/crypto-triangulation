@@ -1,10 +1,12 @@
-"""Feed de mercado en tiempo real vía WebSocket (streams bookTicker)."""
+"""Feed de mercado en tiempo real vía WebSocket asíncrono (streams bookTicker)."""
 
+import asyncio
 import json
 import logging
 from collections.abc import Callable
 
-import websocket
+import websockets
+from websockets.exceptions import ConnectionClosed
 
 from triangulation.models import BookTicker
 
@@ -23,38 +25,44 @@ class BookTickerStream:
         streams = "/".join(f"{symbol.lower()}@bookTicker" for symbol in symbols)
         self._url = base_url + streams
         self._on_tick = on_tick
-        self._ws: websocket.WebSocketApp | None = None
+        self._stop_event = asyncio.Event()
 
-    def start(self) -> None:
-        """Inicia el loop del WebSocket (bloqueante, con reconexión)."""
-        self._ws = websocket.WebSocketApp(
-            self._url,
-            on_message=self._handle_message,
-            on_error=self._handle_error,
-        )
+    async def start(self) -> None:
+        """Inicia el loop del WebSocket (asíncrono, con reconexión manual)."""
         logger.info("Conectando al stream: %s", self._url)
-        self._ws.run_forever(reconnect=15, ping_interval=180)
+        
+        while not self._stop_event.is_set():
+            try:
+                async with websockets.connect(self._url) as ws:
+                    logger.info("Websocket conectado")
+                    while not self._stop_event.is_set():
+                        message = await ws.recv()
+                        await self._handle_message(message)
+            except ConnectionClosed:
+                logger.warning("Conexión cerrada, reconectando en 5s...")
+                await asyncio.sleep(5)
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                logger.error("Error en websocket: %s", exc)
+                await asyncio.sleep(5)
 
     def stop(self) -> None:
-        """Cierra la conexión del WebSocket."""
-        if self._ws is not None:
-            self._ws.close()
+        """Cierra la conexión del WebSocket de forma ordenada."""
+        self._stop_event.set()
 
-    def _handle_message(self, _ws: websocket.WebSocket, message: str) -> None:
-        """Parsea cada mensaje y lo entrega al callback; ignora los inválidos.
-
-        Nunca propaga excepciones: un fallo en el callback no debe tumbar el
-        stream (defensa en profundidad; el motor también se autoprotege).
-        """
+    async def _handle_message(self, message: str) -> None:
+        """Parsea cada mensaje y lo entrega al callback; ignora los inválidos."""
         try:
             ticker = BookTicker.from_ws(json.loads(message))
         except (KeyError, ValueError) as exc:
             logger.warning("Mensaje inválido ignorado: %s", exc)
             return
         try:
-            self._on_tick(ticker)
+            if asyncio.iscoroutinefunction(self._on_tick):
+                await self._on_tick(ticker)
+            else:
+                self._on_tick(ticker)
         except Exception:
             logger.exception("Error en el callback de tick (%s)", ticker.symbol)
 
-    def _handle_error(self, _ws: websocket.WebSocket, error: object) -> None:
-        logger.error("Error en websocket: %s", error)

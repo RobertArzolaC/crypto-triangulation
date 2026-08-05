@@ -1,7 +1,7 @@
 """Tests del módulo de ejecución (cliente Binance y filtros de símbolos)."""
 
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 
@@ -12,8 +12,15 @@ def make_client_with_mock() -> tuple[BinanceClient, MagicMock]:
     """Construye un BinanceClient con la sesión HTTP mockeada."""
     client = BinanceClient("key", "secret")
     mock_session = MagicMock()
-    mock_session.request.return_value.status_code = 200
-    mock_session.request.return_value.json.return_value = {"symbols": []}
+    
+    mock_response = AsyncMock()
+    mock_response.status = 200
+    mock_response.json.return_value = {"symbols": []}
+    
+    mock_request_context = MagicMock()
+    mock_request_context.__aenter__.return_value = mock_response
+    
+    mock_session.request.return_value = mock_request_context
     client._session = mock_session
     return client, mock_session
 
@@ -23,10 +30,11 @@ def last_request_params(mock_session: MagicMock) -> dict[str, Any]:
     return mock_session.request.call_args.kwargs["params"]
 
 
-def test_symbols_param_is_compact_json() -> None:
+@pytest.mark.asyncio
+async def test_symbols_param_is_compact_json() -> None:
     """El parámetro `symbols` se serializa sin espacios (Binance error -1100)."""
     client, mock_session = make_client_with_mock()
-    client.get_exchange_info(["BTCUSDT", "ETHUSDT", "ETHBTC"])
+    await client.get_exchange_info(["BTCUSDT", "ETHUSDT", "ETHBTC"])
 
     params = last_request_params(mock_session)
     assert params["symbols"] == '["BTCUSDT","ETHUSDT","ETHBTC"]'
