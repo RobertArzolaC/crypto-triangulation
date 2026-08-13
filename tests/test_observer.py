@@ -40,12 +40,10 @@ def make_tickers() -> dict[str, BookTicker]:
     }
 
 
-def make_observer(interval: float = 60.0) -> tuple[ProfitabilityObserver, list[float]]:
+def make_observer() -> tuple[ProfitabilityObserver, list[float]]:
     """Construye un observer con reloj controlable: clock() == now[0]."""
     now = [0.0]
-    observer = ProfitabilityObserver(
-        THRESHOLD, stats_interval_s=interval, clock=lambda: now[0]
-    )
+    observer = ProfitabilityObserver(THRESHOLD, clock=lambda: now[0])
     return observer, now
 
 
@@ -77,28 +75,6 @@ def test_record_none_counts_skipped() -> None:
 
     assert observer.evaluations == 0
     assert observer.skipped == 1
-
-
-def test_maybe_log_respects_interval() -> None:
-    """La línea STATS solo se emite cuando vence el intervalo."""
-    observer, now = make_observer(interval=60.0)
-
-    now[0] = 30.0
-    assert observer.maybe_log() is False
-    now[0] = 61.0
-    assert observer.maybe_log() is True
-    now[0] = 90.0
-    assert observer.maybe_log() is False
-
-
-def test_new_best_is_logged(caplog: pytest.LogCaptureFixture) -> None:
-    """Superar el máximo histórico genera una alerta inmediata."""
-    observer, _ = make_observer()
-    with caplog.at_level(logging.INFO):
-        observer.record(make_cycle(-0.05))
-
-    assert "Nuevo mejor ciclo" in caplog.text
-    assert "-0.0500%" in caplog.text
 
 
 def test_positive_cycle_logs_detailed_fields(caplog: pytest.LogCaptureFixture) -> None:

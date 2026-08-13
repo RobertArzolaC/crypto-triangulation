@@ -29,9 +29,6 @@ class StubObserver:
     def record(self, cycle: CycleResult | None, tickers: dict | None = None) -> None:
         self.recorded.append(cycle)
 
-    def maybe_log(self) -> bool:
-        return False
-
 
 def make_ticker(symbol: str, bid: float, ask: float, ts: float | None = None) -> BookTicker:
     """Construye un BookTicker con liquidez amplia y timestamp dado."""

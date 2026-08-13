@@ -27,9 +27,7 @@ class ArbitrageEngine:
     ) -> None:
         self._settings = settings
         self._executor = executor
-        self._observer = observer or ProfitabilityObserver(
-            settings.min_profit_pct, settings.stats_interval_s
-        )
+        self._observer = observer or ProfitabilityObserver(settings.min_profit_pct)
         self._last_execution_ts = 0.0
         self._tickers: dict[str, BookTicker] = {}
 
@@ -57,20 +55,12 @@ class ArbitrageEngine:
             fee_rate=self._settings.fee_rate,
         )
         self._observer.record(cycle, self._tickers)
-        self._observer.maybe_log()
 
         if cycle is None or cycle.profit_pct <= self._settings.min_profit_pct:
             return
         if not self._cooldown_elapsed():
             return
 
-        logger.info(
-            "Oportunidad %s: profit neto %.4f%% (%.8f BTC -> %.8f BTC)",
-            cycle.direction,
-            cycle.profit_pct,
-            self._settings.trade_amount,
-            cycle.final_amount,
-        )
         if await self._executor.execute(cycle):
             self._last_execution_ts = time.time()
 

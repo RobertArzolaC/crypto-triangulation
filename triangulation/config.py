@@ -17,7 +17,6 @@ class Settings:
         dry_run: True solo simula y loguea oportunidades; False opera de verdad.
         max_price_age_ms: Frescura máxima de los precios para evaluar (ms).
         cooldown_s: Espera mínima entre ejecuciones (segundos).
-        stats_interval_s: Intervalo entre líneas STATS de proximidad (segundos).
         ws_base_url: URL base del WebSocket de Binance.
         api_base_url: URL base de la API REST de Binance.
         log_file: Ruta del archivo de log (vacío desactiva salida a archivo).
@@ -32,7 +31,6 @@ class Settings:
     dry_run: bool = True
     max_price_age_ms: int = 1500
     cooldown_s: float = 5.0
-    stats_interval_s: float = 60.0
     ws_base_url: str = "wss://stream.binance.com:9443/ws/"
     api_base_url: str = "https://api.binance.com"
     log_file: str = "crypto.log"
@@ -50,8 +48,6 @@ class Settings:
             raise ValueError("max_price_age_ms debe ser positivo")
         if self.cooldown_s < 0:
             raise ValueError("cooldown_s no puede ser negativo")
-        if self.stats_interval_s <= 0:
-            raise ValueError("stats_interval_s debe ser positivo")
         if len(self.pairs) != 3:
             raise ValueError("pairs debe contener exactamente 3 símbolos")
 
@@ -81,7 +77,6 @@ class Settings:
             dry_run=dry_run,
             max_price_age_ms=_get_int("MAX_PRICE_AGE_MS", 1500),
             cooldown_s=_get_float("COOLDOWN_S", 5.0),
-            stats_interval_s=_get_float("STATS_INTERVAL_S", 60.0),
             pairs=_get_tuple("PAIRS", ("BTCFDUSD", "ETHFDUSD", "ETHBTC")),
         )
 

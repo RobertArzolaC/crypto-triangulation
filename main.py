@@ -46,7 +46,7 @@ async def async_main() -> None:
     try:
         filters = await _load_filters(client, list(settings.pairs))
         executor = OrderExecutor(client, filters, dry_run=settings.dry_run)
-        observer = ProfitabilityObserver(settings.min_profit_pct, settings.stats_interval_s)
+        observer = ProfitabilityObserver(settings.min_profit_pct)
         engine = ArbitrageEngine(settings, executor, observer)
         stream = BookTickerStream(settings.ws_base_url, settings.pairs, engine.on_tick)
 

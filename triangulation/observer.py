@@ -1,9 +1,9 @@
 """Observabilidad de la proximidad a la rentabilidad del arbitraje.
 
-Registra cada ciclo evaluado por el motor y emite periódicamente un resumen
-con el mejor profit neto observado, su distancia al umbral de ejecución y
-percentiles recientes. Permite responder con datos "qué tan cerca está el
-bot de la rentabilidad" sin operar con dinero real.
+Registra cada ciclo evaluado por el motor y loguea una línea OPORTUNIDAD por
+ciclo con profit neto positivo (detalle de precios, gross, fees y net). Acumula
+contadores y percentiles para el resumen final de la sesión, sin emisión
+periódica de estadísticas para reducir el volumen del log.
 """
 
 import logging
@@ -25,13 +25,11 @@ class ProfitabilityObserver:
 
     Attributes:
         min_profit_pct: Umbral de ejecución (%) contra el que se mide.
-        stats_interval_s: Intervalo entre resúmenes periódicos (segundos).
     """
 
     def __init__(
         self,
         min_profit_pct: float,
-        stats_interval_s: float = 60.0,
         window_size: int = 10_000,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
@@ -39,15 +37,12 @@ class ProfitabilityObserver:
 
         Args:
             min_profit_pct: Umbral de profit neto (%) para considerar ejecución.
-            stats_interval_s: Segundos entre líneas STATS.
             window_size: Tamaño de la ventana reciente para percentiles.
             clock: Reloj monotónico (inyectable para tests).
         """
         self.min_profit_pct = min_profit_pct
-        self.stats_interval_s = stats_interval_s
         self._clock = clock
         self._start = clock()
-        self._last_log = self._start
         self._evaluations = 0
         self._skipped = 0
         self._opportunities = 0
@@ -94,30 +89,11 @@ class ProfitabilityObserver:
         self._recent.append(cycle.profit_pct)
         if cycle.profit_pct > self.min_profit_pct:
             self._opportunities += 1
-        if cycle.profit_pct > 0:
-            logger.info("%s", self._format_opportunity(cycle, tickers or {}))
         if cycle.profit_pct > self._best_profit:
             self._best_profit = cycle.profit_pct
             self._best_direction = cycle.direction
-            logger.info(
-                "Nuevo mejor ciclo: %+.4f%% (%s) | %s",
-                cycle.profit_pct,
-                cycle.direction,
-                self._distance_text(cycle.profit_pct),
-            )
-
-    def maybe_log(self) -> bool:
-        """Emite la línea STATS si ya venció el intervalo configurado.
-
-        Returns:
-            True si se logueó el resumen periódico.
-        """
-        now = self._clock()
-        if now - self._last_log < self.stats_interval_s:
-            return False
-        self._last_log = now
-        logger.info("STATS %s", self._format_stats())
-        return True
+        if cycle.profit_pct > 0:
+            logger.info("%s", self._format_opportunity(cycle, tickers or {}))
 
     def summary(self) -> str:
         """Resumen final de la sesión (para loguear al detener el bot)."""

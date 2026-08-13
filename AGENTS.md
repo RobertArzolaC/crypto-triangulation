@@ -12,7 +12,7 @@ Detecta ciclos rentables con datos bookTicker en tiempo real y opera
 - `triangulation/models.py` — BookTicker dataclass
 - `triangulation/storage.py` — Precios thread-safe con frescura
 - `triangulation/strategy.py` — Cálculo de ciclos (2 direcciones; sin umbral)
-- `triangulation/observer.py` — Métricas de proximidad a rentabilidad (STATS)
+- `triangulation/observer.py` — Métricas de proximidad a rentabilidad
 - `triangulation/execution.py` — Cliente Binance + executor (dry-run aware)
 - `triangulation/market_data.py` — WebSocket bookTicker
 - `triangulation/engine.py` — Orquestación tick → medición → ejecución
@@ -48,5 +48,4 @@ Detecta ciclos rentables con datos bookTicker en tiempo real y opera
 ## Configuración (.env)
 
 `BINANCE_API_KEY`, `BINANCE_API_SECRET`, `DRY_RUN`, `FEE_RATE`,
-`MIN_PROFIT_PCT`, `TRADE_AMOUNT`, `MAX_PRICE_AGE_MS`, `COOLDOWN_S`,
-`STATS_INTERVAL_S`
+`MIN_PROFIT_PCT`, `TRADE_AMOUNT`, `MAX_PRICE_AGE_MS`, `COOLDOWN_S`
