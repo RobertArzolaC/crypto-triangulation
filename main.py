@@ -19,8 +19,6 @@ from triangulation.observer import ProfitabilityObserver
 
 logger = logging.getLogger(__name__)
 
-RECONNECT_DELAY_S = 5.0
-
 
 def _sigterm_handler(signum: int, frame: object) -> None:
     """Convierte SIGTERM en KeyboardInterrupt para un apagado ordenado."""

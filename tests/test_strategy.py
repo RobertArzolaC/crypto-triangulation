@@ -107,6 +107,25 @@ def test_edge_below_fees_yields_negative_profit() -> None:
     assert cycle.profit_pct < 0
 
 
+def test_cycle_reports_gross_and_fees() -> None:
+    """evaluate descompone el profit en bruto y costo de fees.
+
+    bruto (sin fees) = 1.0 * 30000 / 2000 * 0.067 - 1 = +0.5%
+    neto = 1.005 * (1 - 0.00075)^3 - 1 ≈ +0.27404%
+    fees = bruto - neto ≈ 0.22596%
+    """
+    tickers = profitable_forward_tickers()
+    legs = build_legs(
+        DIRECTION_FORWARD, tickers["BTCUSDT"], tickers["ETHUSDT"], tickers["ETHBTC"]
+    )
+    cycle = evaluate(DIRECTION_FORWARD, legs, amount=1.0, fee_rate=FEE)
+
+    assert cycle is not None
+    assert cycle.gross_profit_pct == pytest.approx(0.5, abs=1e-4)
+    assert cycle.fees_pct == pytest.approx(0.22596, abs=1e-4)
+    assert cycle.profit_pct == pytest.approx(cycle.gross_profit_pct - cycle.fees_pct, abs=1e-9)
+
+
 def test_insufficient_liquidity_rejected() -> None:
     """Si el top-of-book no cubre la cantidad requerida, el ciclo es None."""
     tickers = profitable_forward_tickers()

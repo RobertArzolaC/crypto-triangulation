@@ -3,7 +3,7 @@
 import asyncio
 import json
 import logging
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
 import websockets
 from websockets.exceptions import ConnectionClosed
@@ -20,7 +20,7 @@ class BookTickerStream:
         self,
         base_url: str,
         symbols: tuple[str, ...] | list[str],
-        on_tick: Callable[[BookTicker], None],
+        on_tick: Callable[[BookTicker], Awaitable[None]],
     ) -> None:
         streams = "/".join(f"{symbol.lower()}@bookTicker" for symbol in symbols)
         self._url = base_url + streams
@@ -51,7 +51,7 @@ class BookTickerStream:
         """Cierra la conexión del WebSocket de forma ordenada."""
         self._stop_event.set()
 
-    async def _handle_message(self, message: str) -> None:
+    async def _handle_message(self, message: str | bytes) -> None:
         """Parsea cada mensaje y lo entrega al callback; ignora los inválidos."""
         try:
             ticker = BookTicker.from_ws(json.loads(message))
@@ -59,10 +59,7 @@ class BookTickerStream:
             logger.warning("Mensaje inválido ignorado: %s", exc)
             return
         try:
-            if asyncio.iscoroutinefunction(self._on_tick):
-                await self._on_tick(ticker)
-            else:
-                self._on_tick(ticker)
+            await self._on_tick(ticker)
         except Exception:
             logger.exception("Error en el callback de tick (%s)", ticker.symbol)
 

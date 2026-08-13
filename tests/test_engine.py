@@ -26,7 +26,7 @@ class StubObserver:
     def __init__(self) -> None:
         self.recorded: list[CycleResult | None] = []
 
-    def record(self, cycle: CycleResult | None) -> None:
+    def record(self, cycle: CycleResult | None, tickers: dict | None = None) -> None:
         self.recorded.append(cycle)
 
     def maybe_log(self) -> bool:

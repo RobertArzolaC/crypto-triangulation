@@ -66,12 +66,17 @@ class CycleResult:
         direction: DIRECTION_FORWARD o DIRECTION_REVERSE.
         profit_pct: Profit neto estimado en % sobre el monto inicial (post-fees;
             puede ser negativo).
+        gross_profit_pct: Profit bruto en % (sin descontar fees).
+        fees_pct: Costo total de fees del ciclo en % del monto inicial
+            (gross_profit_pct - profit_pct).
         final_amount: Monto final estimado en BTC.
         orders: Las 3 órdenes planificadas del ciclo, en orden de ejecución.
     """
 
     direction: str
     profit_pct: float
+    gross_profit_pct: float
+    fees_pct: float
     final_amount: float
     orders: tuple[PlannedOrder, ...]
 
@@ -131,6 +136,7 @@ def evaluate(
         lo aplica el motor, no la estrategia.
     """
     value = amount
+    gross_value = amount
     orders: list[PlannedOrder] = []
     for leg in legs:
         if leg.side == SIDE_SELL:
@@ -142,10 +148,22 @@ def evaluate(
         if required > leg.available:
             return None  # liquidez top-of-book insuficiente
         orders.append(PlannedOrder(leg.symbol, leg.side, required, leg.price))
+        gross_value = (
+            gross_value * leg.price if leg.side == SIDE_SELL else gross_value / leg.price
+        )
         value = received * (1 - fee_rate)
 
     profit_pct = (value / amount - 1) * 100
-    return CycleResult(direction, profit_pct, value, tuple(orders))
+    gross_profit_pct = (gross_value / amount - 1) * 100
+    fees_pct = gross_profit_pct - profit_pct
+    return CycleResult(
+        direction,
+        profit_pct,
+        gross_profit_pct,
+        fees_pct,
+        value,
+        tuple(orders),
+    )
 
 
 def find_best_cycle(

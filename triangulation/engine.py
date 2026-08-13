@@ -1,6 +1,5 @@
 """Orquestación: ticks de mercado -> evaluación de estrategia -> ejecución."""
 
-import asyncio
 import logging
 import time
 
@@ -57,7 +56,7 @@ class ArbitrageEngine:
             amount=self._settings.trade_amount,
             fee_rate=self._settings.fee_rate,
         )
-        self._observer.record(cycle)
+        self._observer.record(cycle, self._tickers)
         self._observer.maybe_log()
 
         if cycle is None or cycle.profit_pct <= self._settings.min_profit_pct:

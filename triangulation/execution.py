@@ -232,7 +232,7 @@ class OrderExecutor:
             success = True
             for i, result in enumerate(results):
                 order = planned[i]
-                if isinstance(result, Exception):
+                if isinstance(result, BaseException):
                     logger.critical(
                         "FALLO simultáneo en pata %s %s: %s.",
                         order.side, order.symbol, result,

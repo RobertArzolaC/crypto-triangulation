@@ -11,6 +11,7 @@ import time
 from collections import deque
 from collections.abc import Callable
 
+from triangulation.models import BookTicker
 from triangulation.strategy import CycleResult
 
 logger = logging.getLogger(__name__)
@@ -74,11 +75,17 @@ class ProfitabilityObserver:
         """Mejor profit neto observado (-inf si aún no hay evaluaciones)."""
         return self._best_profit
 
-    def record(self, cycle: CycleResult | None) -> None:
+    def record(
+        self,
+        cycle: CycleResult | None,
+        tickers: dict[str, BookTicker] | None = None,
+    ) -> None:
         """Registra el mejor ciclo de una evaluación.
 
         Args:
             cycle: Mejor ciclo del tick, o None si faltó liquidez top-of-book.
+            tickers: Estado de precios de los 3 pares del triángulo; se usa para
+                imprimir el detalle de los ciclos rentables (profit > 0).
         """
         if cycle is None:
             self._skipped += 1
@@ -87,6 +94,8 @@ class ProfitabilityObserver:
         self._recent.append(cycle.profit_pct)
         if cycle.profit_pct > self.min_profit_pct:
             self._opportunities += 1
+        if cycle.profit_pct > 0:
+            logger.info("%s", self._format_opportunity(cycle, tickers or {}))
         if cycle.profit_pct > self._best_profit:
             self._best_profit = cycle.profit_pct
             self._best_direction = cycle.direction
@@ -129,6 +138,22 @@ class ProfitabilityObserver:
             f"mejor={self._best_profit:+.4f}% ({self._best_direction}) | "
             f"{self._distance_text(self._best_profit)} | "
             f"p50={p50:+.4f}% p95={p95:+.4f}% | sobre_umbral={self._opportunities}"
+        )
+
+    def _format_opportunity(
+        self, cycle: CycleResult, tickers: dict[str, BookTicker]
+    ) -> str:
+        """Formatea el detalle de un ciclo rentable (profit neto > 0)."""
+        ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        prices = " ".join(
+            f"{symbol.lower()}_bid={tickers[symbol].bid:.8f} "
+            f"{symbol.lower()}_ask={tickers[symbol].ask:.8f}"
+            for symbol in tickers
+        )
+        return (
+            f"OPORTUNIDAD ts={ts} direction={cycle.direction} {prices} "
+            f"gross_profit={cycle.gross_profit_pct:+.4f}% "
+            f"fees={-cycle.fees_pct:+.4f}% net_profit={cycle.profit_pct:+.4f}%"
         )
 
     def _distance_text(self, profit_pct: float) -> str:
