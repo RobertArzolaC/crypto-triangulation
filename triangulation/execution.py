@@ -90,6 +90,10 @@ class BinanceClient:
                 )
             return data
 
+    async def get_account(self) -> dict[str, Any]:
+        """Obtiene la información de la cuenta (balances) firmada."""
+        return await self._request("GET", "/api/v3/account", signed=True)
+
     async def get_exchange_info(self, symbols: list[str]) -> dict[str, Any]:
         """Obtiene exchangeInfo (filtros de trading) de los símbolos dados.
 
