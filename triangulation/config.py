@@ -11,7 +11,7 @@ class Settings:
     Attributes:
         api_key: API key de Binance (opcional en dry-run).
         api_secret: API secret de Binance (opcional en dry-run).
-        fee_rate: Comisión promedio por pata (ej. 0.00025 = 0.025% promedio si dos pares tienen 0% fee y uno 0.075%).
+        fee_rate: Comisión taker por pata (0.00075 = 0.075% con descuento BNB; 0.001 = 0.1% sin BNB). El bot usa LIMIT FOK al top-of-book, que siempre llena como taker (las promos 0% de FDUSD son solo maker).
         min_profit_pct: Umbral de profit neto (post-fees) en porcentaje.
         trade_amount: Monto base por ciclo de arbitraje, en BTC.
         dry_run: True solo simula y loguea oportunidades; False opera de verdad.
@@ -25,7 +25,7 @@ class Settings:
 
     api_key: str
     api_secret: str
-    fee_rate: float = 0.00025
+    fee_rate: float = 0.00075
     min_profit_pct: float = 0.1
     trade_amount: float = 0.002
     dry_run: bool = True
@@ -71,7 +71,7 @@ class Settings:
         return cls(
             api_key=api_key,
             api_secret=api_secret,
-            fee_rate=_get_float("FEE_RATE", 0.00025),
+            fee_rate=_get_float("FEE_RATE", 0.00075),
             min_profit_pct=_get_float("MIN_PROFIT_PCT", 0.1),
             trade_amount=_get_float("TRADE_AMOUNT", 0.002),
             dry_run=dry_run,
